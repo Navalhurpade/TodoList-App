@@ -24,9 +24,7 @@ mongoose.connect("mongodb://localhost:27017/LISTAPP", {
 //Creating Mongoose Scheama
 const listSchema = new mongoose.Schema({
   title: String,
-  items: [{
-    type: String
-  }]
+  items: [String]
 })
 
 //Creating Mongose Model
@@ -56,13 +54,13 @@ app.get("/:customListTitle", function(req, res) {
 
      //After creating a Document Reading it through find()
       } else {
-        ListModel.find({
+        ListModel.findOne({
           title: customListTitle
         }, function(err, data) {
           if (!err) {
             res.render("list", {
               listTitle: customListTitle,
-              newListItems: data
+              newListItems: data.items
             })
           } else {         //Erorr loging
             console.log(err + "Erorr While reading " + customListTitle)
@@ -76,12 +74,12 @@ app.get("/:customListTitle", function(req, res) {
 })
 
 app.get("/", function(req, res) {
-  ListModel.find({
+  ListModel.findOne({
     title: "Today"
   }, function(err, result) {
     res.render("list", {
       listTitle: day,
-      newListItems: result
+      newListItems: result.items
     });
   })
 })
@@ -91,44 +89,81 @@ app.post("/", function(req, res) {
 
   //Checking if title exits in const DaysOfWeek
   if (daysOfWeek.includes(req.body.listTitle)) {
-
-    // If found !, Adding Item in Database with Title == "Today"
-    const listItem = new ListModel({
-      title: "Today",
-      items: item
-    })
-    listItem.save(function(err) {
-      if (err)
-        console.log(err+" ERORR while Adding New item to the document")
+    ListModel.findOne({title: "Today"}, function(err, foundlist){
+      if (!err) {
+        if (!foundlist) {
+          const welcomeItem = new ListModel({
+            title: "Today",
+            items: "Wellcome"
+          })
+          welcomeItem.save()
+        }else {
+          foundlist.items.push(item)
+          foundlist.save()
+        }
+      }else {
+        console.log(err+ "  Erorr while finding today in list");
+      }
     })
     res.redirect("/")
 
 
     // Else Setting Title To custom  String
   } else {
-    const customListItem = new ListModel({
-      title: customListTitle,
-      items: item
-    })
-    customListItem.save()
-    res.redirect("/" + customListTitle)
+    ListModel.findOne({title: customListTitle}, function(err, foundlist){
+    if (!err) {
+
+      //if Data NOT found then Creating List With custom Title
+      if (!foundlist) {
+        const customListItem = new ListModel({
+          title: customListTitle,
+          items: item
+        })
+        customListItem.save()
+
+
+      //Ones List is created then ONLY push new item into it
+      }else {
+        foundlist.items.push(item)
+        foundlist.save()
+      }
+    }else {              //Loging Eorrs
+      console.log(err+"Erorr While finding Custom list");
+    }
+  })
+  res.redirect("/" + customListTitle)
   }
 })
 
 app.post("/delete", function(req, res) {
-  let checkbox = req.body.checkbox
-  ListModel.findOneAndRemove({
-    _id: checkbox
-  }, function(err) {
-    if (err)
-      console.log(err+" ERROr While Deleting")
+  let index = req.body.index
+  let listTitle = req.body.listTitleIndelete
+
+ if (daysOfWeek.includes(listTitle)) {
+  ListModel.findOne({
+    title: "Today"
+  }, function(err, thislist) {
+    if (!err){
+      thislist.items.splice(index,1)
+      thislist.save()
+    }
   })
-
-  if (daysOfWeek.includes(req.body.listTitle))
-  res.redirect("/")
-  else 
-  res.redirect("/"+customListTitle)
-
+    res.redirect("/")
+} else {
+  ListModel.findOne({
+    title: listTitle
+  }, function(err, thislist) {
+    if (!err){
+      if (!thislist) {
+        console.log("this list is empty");
+      } else {
+      thislist.items.splice(index,1)
+      thislist.save()
+      }
+ res.redirect("/"+customListTitle)
+      }
+    }
+  )}
 })
 
 app.listen(3000, function() {
