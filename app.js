@@ -35,19 +35,26 @@ const ListModel = mongoose.model("List", listSchema)
 
 app.get("/:customListTitle", function(req, res) {
   customListTitle = req.params.customListTitle
+
+//Searching if List Already Exits Or not !
   ListModel.findOne({
     title: customListTitle
   }, function(err, result) {
-    if (!err) {
+    if (!err) {      //if no erorr
+
+
+      //IF NO result found ONLY THEN creating new
+      //document wjere titel: is set to Current Custom List Titl
       if (!result) {
         const customItem = new ListModel({
           title: customListTitle,
           items: "Wellcome"
         })
         customItem.save()
-        console.log("Results not found !");
 
         res.redirect("/" + customListTitle)
+
+     //After creating a Document Reading it through find()
       } else {
         ListModel.find({
           title: customListTitle
@@ -57,14 +64,13 @@ app.get("/:customListTitle", function(req, res) {
               listTitle: customListTitle,
               newListItems: data
             })
-            console.log("Custom list " + customListTitle + " Found !")
-          } else {
+          } else {         //Erorr loging
             console.log(err + "Erorr While reading " + customListTitle)
           }
         })
       }
-    } else {
-      console.log(err)
+    } else {             //Erorr loging
+      console.log(err+" EORR While Finding document ")
     }
   })
 })
@@ -87,21 +93,19 @@ app.post("/", function(req, res) {
   if (daysOfWeek.includes(req.body.listTitle)) {
 
     // If found !, Adding Item in Database with Title == "Today"
-    console.log("Today True")
     const listItem = new ListModel({
       title: "Today",
       items: item
     })
     listItem.save(function(err) {
       if (err)
-        console.log(err)
+        console.log(err+" ERORR while Adding New item to the document")
     })
     res.redirect("/")
 
 
-  } else { // Else Setting Title To custom  String
-    // const customTitle = req.body.customListTitle
-    console.log("Adding New Item which is " + item + " in custom List " + customListTitle);
+    // Else Setting Title To custom  String
+  } else {
     const customListItem = new ListModel({
       title: customListTitle,
       items: item
@@ -117,17 +121,14 @@ app.post("/delete", function(req, res) {
     _id: checkbox
   }, function(err) {
     if (err)
-      console.log(err)
-    else
-      console.log(" Deleted Sucssfully");
+      console.log(err+" ERROr While Deleting")
   })
-  if (daysOfWeek.includes(req.body.listTitle)){
+
+  if (daysOfWeek.includes(req.body.listTitle))
   res.redirect("/")
-  console.log("Redirecting to /");
-}else {
+  else 
   res.redirect("/"+customListTitle)
-  console.log("Redirecting to /"+customListTitle);
-}
+
 })
 
 app.listen(3000, function() {
